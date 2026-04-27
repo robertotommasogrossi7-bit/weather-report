@@ -1,0 +1,8 @@
+CREATE SCHEMA IF NOT EXISTS raw;
+
+CREATE TABLE IF NOT EXISTS raw.weather_api_data (
+    id SERIAL PRIMARY KEY,
+    source VARCHAR(50) NOT NULL,
+    ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data JSONB NOT NULL
+);

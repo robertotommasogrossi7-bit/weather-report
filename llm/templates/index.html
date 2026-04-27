@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Insights AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #111217;
+            color: #d4d4d4;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #73bf69;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        p.subtitle {
+            color: #8e8e8e;
+            margin-bottom: 32px;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background-color: #181b1f;
+            border: 1px solid #2a2e35;
+            border-radius: 8px;
+            padding: 32px;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        textarea {
+            width: 100%;
+            background-color: #111217;
+            border: 1px solid #2a2e35;
+            border-radius: 6px;
+            color: #d4d4d4;
+            font-size: 1rem;
+            padding: 12px;
+            resize: vertical;
+            min-height: 80px;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #73bf69;
+        }
+
+        button {
+            margin-top: 16px;
+            width: 100%;
+            background-color: #73bf69;
+            color: #111217;
+            border: none;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #5aab50;
+        }
+
+        button:disabled {
+            background-color: #2a2e35;
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        .sql-box {
+            margin-top: 24px;
+            background-color: #0f1117;
+            border: 1px solid #2a2e35;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #8e8e8e;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .risultati {
+            margin-top: 16px;
+            display: none;
+        }
+
+        .risultati table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .risultati th {
+            background-color: #1f2329;
+            color: #73bf69;
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #2a2e35;
+        }
+
+        .risultati td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #1f2329;
+            color: #d4d4d4;
+        }
+
+        .risultati tr:hover td {
+            background-color: #1f2329;
+        }
+
+        .errore {
+            margin-top: 16px;
+            color: #f2495c;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .loading {
+            margin-top: 16px;
+            color: #8e8e8e;
+            font-size: 0.9rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌤 Weather Insights AI</h1>
+    <p class="subtitle">Fai una domanda sul meteo in linguaggio naturale</p>
+
+    <div class="card">
+        <textarea id="domanda" placeholder="Es: Qual è la città più calda in questo momento?"></textarea>
+        <button id="btn" onclick="chiedi()">Chiedi</button>
+
+        <div id="summary" style="margin-top:16px; font-weight:bold; color:#73bf69;"></div>
+
+        <div class="loading" id="loading">⏳ Elaborazione in corso...</div>
+        <div class="errore" id="errore"></div>
+        <div class="sql-box" id="sql-box"></div>
+        <div class="risultati" id="risultati"></div>
+    </div>
+
+    <script>
+        async function chiedi() {
+            const domanda = document.getElementById("domanda").value.trim();
+            if (!domanda) return;
+
+            // Reset UI
+            document.getElementById("errore").style.display = "none";
+            document.getElementById("sql-box").style.display = "none";
+            document.getElementById("risultati").style.display = "none";
+            document.getElementById("summary").innerText = "";
+            document.getElementById("loading").style.display = "block";
+            document.getElementById("btn").disabled = true;
+
+            try {
+                const res = await fetch("/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ domanda })
+                });
+
+                const data = await res.json();
+
+                if (data.errore) {
+                    mostraErrore(data.errore);
+                    return;
+                }
+
+                document.getElementById("summary").innerText = data.summary;
+
+                mostraRisultati(data.data);
+
+            } catch (err) {
+                mostraErrore("Errore di connessione al server.");
+            } finally {
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("btn").disabled = false;
+            }
+        }
+
+        function mostraErrore(msg) {
+            const el = document.getElementById("errore");
+            el.textContent = msg;
+            el.style.display = "block";
+        }
+
+        function mostraRisultati(righe) {
+            if (!Array.isArray(righe) || righe.length === 0) {
+                mostraErrore("Nessun risultato trovato.");
+                return;
+            }
+
+            const colonne = Object.keys(righe[0]);
+            let html = "<table><thead><tr>";
+            colonne.forEach(c => html += `<th>${c}</th>`);
+            html += "</tr></thead><tbody>";
+
+            righe.forEach(riga => {
+                html += "<tr>";
+                colonne.forEach(c => {
+                    const val = riga[c];
+                    const formatted = (!isNaN(val) && val !== '' && val !== null)
+                        ? parseFloat(val).toLocaleString('it-IT', {maximumFractionDigits: 2})
+                        : val;
+                    html += `<td>${formatted}</td>`;
+                });
+                html += "</tr>";
+            });
+
+            html += "</tbody></table>";
+
+            const el = document.getElementById("risultati");
+            el.innerHTML = html;
+            el.style.display = "block";
+        }
+
+        // Invio con Enter
+        document.getElementById("domanda").addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                chiedi();
+            }
+        });
+    </script>
+
+</body>
+</html>
