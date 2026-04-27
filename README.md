@@ -26,6 +26,7 @@ and exposes a natural language query interface powered by OpenAI.
 ![AI Interface](ai_interface.png)
 
 ## 🏗 Architecture
+```
 [OpenWeatherMap API]
 ↓
 [Python Ingestion] → [PostgreSQL RAW layer]
@@ -47,9 +48,10 @@ and exposes a natural language query interface powered by OpenAI.
 
 [Flask + OpenAI API]
 (natural language query interface)
+```
 
 ## 🗄 Data Model
-
+```
 The mart layer follows a **Star Schema** design for efficient querying
 and analytics.
                     ┌─────────────────┐
@@ -71,7 +73,7 @@ and analytics.
 │ day             │  │ humidity         │
 │ hour            │  │ raw_id        FK │
 └─────────────────┘  └──────────────────┘  
-
+```
 **Three database layers:**
 - **RAW** — stores the original JSON response from the API, untouched
 - **Staging** — parses and cleans the JSON into relational columns,
