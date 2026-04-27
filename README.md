@@ -20,10 +20,10 @@ and exposes a natural language query interface powered by OpenAI.
 ## 📸 Screenshots
 
 **Grafana Dashboard**
-![Grafana Dashboard](assets/dashboard.png)
+![Grafana Dashboard](dashboard.png)
 
 **AI Natural Language Interface**
-![AI Interface](assets/ai_interface.png)
+![AI Interface](ai_interface.png)
 
 ## 🏗 Architecture
 [OpenWeatherMap API]
